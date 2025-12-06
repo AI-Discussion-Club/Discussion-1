@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Knowledge Graph</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                   Roboto, sans-serif;
+      background-color: #020617;
+      background-image: radial-gradient(circle at 20% 20%, #0f172a 0%, #020617 55%, #000 100%);
+      background-attachment: fixed;
+      background-repeat: no-repeat;
+      color: #f1f5f9;
+    }
+
+    body {
+      padding-top: 88px;
+      padding-right: 320px;
+      box-sizing: border-box;
+    }
+
+    svg {
+      width: calc(100vw - 320px);
+      height: calc(100vh - 88px);
+      cursor: grab;
+      background-image: linear-gradient(rgba(148,163,184,0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(148,163,184,0.04) 1px, transparent 1px);
+      background-size: 80px 80px;
+      display: block;
+    }
+
+    svg:active {
+      cursor: grabbing;
+    }
+
+    #pageHeader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: calc(100vw - 320px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 32px;
+      background: rgba(2,6,23,0.92);
+      border-bottom: 1px solid rgba(148,163,184,0.25);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.65);
+      z-index: 30;
+      backdrop-filter: blur(8px);
+      box-sizing: border-box;
+    }
+
+    .page-header__text {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .page-title {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .page-header__actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
+
+    .link {
+      fill: none;
+      stroke: rgba(148,163,184,0.55);
+      stroke-width: 1.15px;
+      stroke-linecap: round;
+    }
+
+    .node-group {
+      cursor: pointer;
+    }
+
+    .node-fo {
+      pointer-events: none;
+    }
+
+    .node-rect {
+      stroke-width: 1.3px;
+      filter: drop-shadow(0 4px 14px rgba(15,23,42,0.45));
+      transition: stroke 180ms ease, fill 180ms ease, transform 200ms ease;
+    }
+
+    .node-group:hover .node-rect {
+      filter: drop-shadow(0 8px 20px rgba(56,189,248,0.35));
+      transform: translateY(-2px);
+    }
+
+    .node-label {
+      display: block;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #f8fafc;
+      font-weight: 500;
+      font-family: inherit;
+      letter-spacing: 0.01em;
+      pointer-events: none;
+      word-break: break-word;
+      hyphens: auto;
+    }
+
+    .node-toggle circle {
+      stroke-width: 1.2px;
+    }
+
+    .node-toggle text {
+      fill: #f8fafc;
+      font-size: 11px;
+      font-weight: 600;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(15,23,42,0.95);
+      color: #f8fafc;
+      font-size: 12px;
+      border: 1px solid rgba(148,163,184,0.4);
+      white-space: nowrap;
+      display: none;
+      z-index: 10;
+      box-shadow: 0 10px 25px rgba(2,6,23,0.35);
+    }
+
+    .graph-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148,163,184,0.5);
+      background: rgba(15,23,42,0.8);
+      color: #f8fafc;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: background 160ms ease, border 160ms ease;
+    }
+
+    .graph-toggle:hover {
+      background: rgba(30,64,175,0.9);
+      border-color: rgba(191,219,254,0.9);
+    }
+
+    .commit-btn {
+      border-color: rgba(16,185,129,0.45);
+      background: rgba(6,95,70,0.9);
+    }
+
+    .commit-btn:hover {
+      background: rgba(5,122,85,0.95);
+      border-color: rgba(74,222,128,0.9);
+    }
+
+    #notesPanel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 300px;
+      height: 100vh;
+      padding: 92px 18px 24px;
+      box-sizing: border-box;
+      background: linear-gradient(180deg, rgba(15,23,42,0.98) 0%, rgba(2,6,23,0.96) 100%);
+      border-left: 1px solid rgba(148,163,184,0.25);
+      color: #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 25;
+    }
+
+    #notesPanel h2 {
+      margin: 0;
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(148,163,184,0.9);
+    }
+
+    #noteTitle {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: #fafafa;
+      min-height: 48px;
+    }
+
+    #noteInput {
+      width: 100%;
+      min-height: 220px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.35);
+      background: rgba(15,23,42,0.85);
+      color: #e2e8f0;
+      padding: 12px;
+      font-size: 13px;
+      font-family: inherit;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+
+    #noteInput:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .node-selected .node-rect {
+      stroke-width: 2.4px;
+      filter: drop-shadow(0 6px 18px rgba(14,165,233,0.4));
+    }
+
+  </style>
+</head>
+<body>
+<header id="pageHeader">
+  <div class="page-header__text">
+    <div class="page-title">Knowledge Graph</div>
+  </div>
+  <div class="page-header__actions">
+    <button id="commitNotesBtn" class="graph-toggle commit-btn" type="button">Commit</button>
+    <button id="graphToggle" class="graph-toggle" type="button" aria-label="Expand or collapse all nodes">&lt;&gt;</button>
+  </div>
+</header>
+<div id="tooltip" class="tooltip"></div>
+<svg id="graph"></svg>
+<aside id="notesPanel">
+  <h2>Node Notes</h2>
+  <div id="noteTitle">Select a node to add notes.</div>
+  <textarea id="noteInput" placeholder="Capture insights, to-dos, or follow-ups..." disabled></textarea>
+</aside>
+
+<!-- D3.js -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+  // ---------------------------------------------------------------------------
+  // 1. Adjacency list describing the mind map
+  // ---------------------------------------------------------------------------
+
+  const adjacency = {
+  "AI Hype, Productivity & Enterprise Adoption": [
+    "Debate on AI’s Real Value",
+    "Conditions for Realizing True AI Productivity",
+    "Constraints Limiting AI Value",
+    "Strategy for Managing AI Risk",
+    "AI, Creativity & Innovation",
+    "Evidence of Disruptive AI Potential",
+    "Limits of Specialized AI Architectures",
+    "The Web, Data Sovereignty & Regulation",
+    "First Structural Corruption",
+    "The Rise of Addictive Algorithmic Systems",
+    "Solid & Digital Data Sovereignty",
+    "Regulation & Governance Challenges",
+    "Cross-Domain Connective Logic (Meta-Edges)",
+    "Addictive Algorithms ↔ Regulation Failure",
+    "Tacit Knowledge ↔ AI Creativity Limits",
+    "RL Disruption ↔ Enterprise AI Constraints"
+  ],
+  "Debate on AI’s Real Value": [
+    "AI is Overhyped",
+    "AI is Underhyped",
+    "AI as Electricity Analogy"
+  ],
+  "AI is Overhyped": [
+    "Slow enterprise adoption",
+    "Marginal productivity gains in legacy workflows"
+  ],
+  "Slow enterprise adoption": [],
+  "Marginal productivity gains in legacy workflows": [],
+  "AI is Underhyped": [
+    "Massive productivity gains in:"
+  ],
+  "Massive productivity gains in:": [
+    "Software engineering",
+    "Advanced manufacturing",
+    "Scientific research"
+  ],
+  "Software engineering": [],
+  "Advanced manufacturing": [],
+  "Scientific research": [],
+  "AI as Electricity Analogy": [
+    "Once adopted (e.g., byte-level coding):"
+  ],
+  "Once adopted (e.g., byte-level coding):": [
+    "Becomes invisible infrastructure",
+    "Becomes an irreplaceable productivity layer"
+  ],
+  "Becomes invisible infrastructure": [],
+  "Becomes an irreplaceable productivity layer": [],
+  "Conditions for Realizing True AI Productivity": [
+    "Enterprise Data Readiness",
+    "High-Complexity Decision Environments"
+  ],
+  "Enterprise Data Readiness": [
+    "Well-documented internal knowledge",
+    "Structured, searchable organizational memory"
+  ],
+  "Well-documented internal knowledge": [],
+  "Structured, searchable organizational memory": [],
+  "High-Complexity Decision Environments": [
+    "Financial markets",
+    "Investment analysis",
+    "Risk-heavy domains with massive data ingestion"
+  ],
+  "Financial markets": [],
+  "Investment analysis": [],
+  "Risk-heavy domains with massive data ingestion": [],
+  "Constraints Limiting AI Value": [
+    "Data Siloing",
+    "Tacit Knowledge Lock-in",
+    "Leadership Risk Aversion"
+  ],
+  "Data Siloing": [
+    "Department-level hoarding",
+    "Cross-org data access restrictions"
+  ],
+  "Department-level hoarding": [],
+  "Cross-org data access restrictions": [],
+  "Tacit Knowledge Lock-in": [
+    "Expertise trapped in human cognition",
+    "Lack of formal documentation"
+  ],
+  "Expertise trapped in human cognition": [],
+  "Lack of formal documentation": [],
+  "Leadership Risk Aversion": [
+    "Fear of:"
+  ],
+  "Fear of:": [
+    "PII exposure",
+    "IP leakage",
+    "Model memorization risks"
+  ],
+  "PII exposure": [],
+  "IP leakage": [],
+  "Model memorization risks": [],
+  "Strategy for Managing AI Risk": [
+    "Risk ≠ Rejection",
+    "Process-First Security Design",
+    "Due Diligence Before Deployment"
+  ],
+  "Risk ≠ Rejection": [
+    "AI adoption should not halt due to risk alone"
+  ],
+  "AI adoption should not halt due to risk alone": [],
+  "Process-First Security Design": [
+    "Enterprise-grade data governance",
+    "Zero-trust AI pipelines"
+  ],
+  "Enterprise-grade data governance": [],
+  "Zero-trust AI pipelines": [],
+  "Due Diligence Before Deployment": [
+    "Secure sandboxes",
+    "Tiered data exposure models"
+  ],
+  "Secure sandboxes": [],
+  "Tiered data exposure models": [],
+  "AI, Creativity & Innovation": [
+    "Nature of AI Creativity"
+  ],
+  "Nature of AI Creativity": [
+    "Skeptical View: “Stochastic Parrot”",
+    "Incremental Innovation Bias"
+  ],
+  "Skeptical View: “Stochastic Parrot”": [
+    "Recombines existing information",
+    "Limited to derivative insight"
+  ],
+  "Recombines existing information": [],
+  "Limited to derivative insight": [],
+  "Incremental Innovation Bias": [
+    "Optimization",
+    "Pattern smoothing",
+    "Design variations"
+  ],
+  "Optimization": [],
+  "Pattern smoothing": [],
+  "Design variations": [],
+  "Evidence of Disruptive AI Potential": [
+    "AlphaGo",
+    "AlphaFold",
+    "Frontier Math & Science"
+  ],
+  "AlphaGo": [
+    "Invented non-human strategies",
+    "Redefined game theory norms"
+  ],
+  "Invented non-human strategies": [],
+  "Redefined game theory norms": [],
+  "AlphaFold": [
+    "Solved protein folding at scale",
+    "Collapsed decades of lab research"
+  ],
+  "Solved protein folding at scale": [],
+  "Collapsed decades of lab research": [],
+  "Frontier Math & Science": [
+    "Accelerated theorem proving",
+    "Human–AI co-discovery loops"
+  ],
+  "Accelerated theorem proving": [],
+  "Human–AI co-discovery loops": [],
+  "Limits of Specialized AI Architectures": [
+    "Reinforcement Learning (RL) Systems",
+    "Mismatch with Real-World Creativity"
+  ],
+  "Reinforcement Learning (RL) Systems": [
+    "Optimize:"
+  ],
+  "Optimize:": [
+    "Stable environments",
+    "Fixed reward functions",
+    "Clear utility landscapes (games, simulations)"
+  ],
+  "Stable environments": [],
+  "Fixed reward functions": [],
+  "Clear utility landscapes (games, simulations)": [],
+  "Mismatch with Real-World Creativity": [
+    "Reality lacks:",
+    "Human creativity operates across:"
+  ],
+  "Reality lacks:": [
+    "Single objective functions",
+    "Stable rule sets"
+  ],
+  "Single objective functions": [],
+  "Stable rule sets": [],
+  "Human creativity operates across:": [
+    "Ethics",
+    "Ambiguity",
+    "Emotion",
+    "Social constraint fields"
+  ],
+  "Ethics": [],
+  "Ambiguity": [],
+  "Emotion": [],
+  "Social constraint fields": [],
+  "The Web, Data Sovereignty & Regulation": [
+    "Berners-Lee’s Original Web Vision (Web 1.0)"
+  ],
+  "Berners-Lee’s Original Web Vision (Web 1.0)": [
+    "Universal",
+    "Collaborative",
+    "Editable (Read–Write Web)",
+    "Compassion-driven knowledge sharing"
+  ],
+  "Universal": [],
+  "Collaborative": [],
+  "Editable (Read–Write Web)": [],
+  "Compassion-driven knowledge sharing": [],
+  "First Structural Corruption": [
+    "Advertising Capital"
+  ],
+  "Advertising Capital": [
+    "Broke micropayment economy",
+    "Replaced subscription logic with:"
+  ],
+  "Broke micropayment economy": [],
+  "Replaced subscription logic with:": [
+    "Surveillance capitalism",
+    "Attention extraction"
+  ],
+  "Surveillance capitalism": [],
+  "Attention extraction": [],
+  "The Rise of Addictive Algorithmic Systems": [
+    "Engagement-Maximization AI",
+    "Anger as an Optimization Attractor",
+    "2016 Elections as Inflection Point"
+  ],
+  "Engagement-Maximization AI": [
+    "Trained for:",
+    "Not trained for:"
+  ],
+  "Trained for:": [
+    "DAU",
+    "Session length"
+  ],
+  "DAU": [],
+  "Session length": [],
+  "Not trained for:": [
+    "Truth",
+    "Social good",
+    "Mental health"
+  ],
+  "Truth": [],
+  "Social good": [],
+  "Mental health": [],
+  "Anger as an Optimization Attractor": [
+    "Outrage increases retention"
+  ],
+  "Outrage increases retention": [],
+  "2016 Elections as Inflection Point": [
+    "Recognition of:"
+  ],
+  "Recognition of:": [
+    "Algorithmic manipulation",
+    "Information weaponization"
+  ],
+  "Algorithmic manipulation": [],
+  "Information weaponization": [],
+  "Solid & Digital Data Sovereignty": [
+    "Core Concept",
+    "Functional Implications",
+    "Enterprise Implementation"
+  ],
+  "Core Concept": [
+    "Users own their data via:"
+  ],
+  "Users own their data via:": [
+    "Personal data pods",
+    "Platform-agnostic identity stores"
+  ],
+  "Personal data pods": [],
+  "Platform-agnostic identity stores": [],
+  "Functional Implications": [
+    "Facebook ↔ LinkedIn interoperability (like email)",
+    "App logic separated from data ownership"
+  ],
+  "Facebook ↔ LinkedIn interoperability (like email)": [],
+  "App logic separated from data ownership": [],
+  "Enterprise Implementation": [
+    "Enrupt building secure enterprise-grade Solid wallets"
+  ],
+  "Enrupt building secure enterprise-grade Solid wallets": [],
+  "Regulation & Governance Challenges": [
+    "Corporate Self-Regulation Failure",
+    "GDPR as a Global Forcing Function",
+    "AI Safety Law Complexity",
+    "Policy Knowledge Gap",
+    "Education as Long-Term Defense"
+  ],
+  "Corporate Self-Regulation Failure": [
+    "Profit-maximization overrides public interest"
+  ],
+  "Profit-maximization overrides public interest": [],
+  "GDPR as a Global Forcing Function": [
+    "Local law → worldwide effect"
+  ],
+  "Local law → worldwide effect": [],
+  "AI Safety Law Complexity": [
+    "LLMs ≠ rule-based systems",
+    "Asimov-style hard-coded ethics impossible"
+  ],
+  "LLMs ≠ rule-based systems": [],
+  "Asimov-style hard-coded ethics impossible": [],
+  "Policy Knowledge Gap": [
+    "Lawmakers lack:"
+  ],
+  "Lawmakers lack:": [
+    "Technical fluency",
+    "Security exploit understanding"
+  ],
+  "Technical fluency": [],
+  "Security exploit understanding": [],
+  "Education as Long-Term Defense": [
+    "Teaching children to code as:"
+  ],
+  "Teaching children to code as:": [
+    "Civic literacy",
+    "Digital sovereignty",
+    "Power equalization"
+  ],
+  "Civic literacy": [],
+  "Digital sovereignty": [],
+  "Power equalization": [],
+  "Cross-Domain Connective Logic (Meta-Edges)": [
+    "AI Productivity ↔ Data Sovereignty"
+  ],
+  "AI Productivity ↔ Data Sovereignty": [
+    "Secure data control enables:"
+  ],
+  "Secure data control enables:": [
+    "Safer enterprise AI adoption",
+    "Reduced leadership hesitation"
+  ],
+  "Safer enterprise AI adoption": [],
+  "Reduced leadership hesitation": [],
+  "Addictive Algorithms ↔ Regulation Failure": [
+    "Engagement optimization exposes need for:"
+  ],
+  "Engagement optimization exposes need for:": [
+    "Enforceable digital public-interest laws"
+  ],
+  "Enforceable digital public-interest laws": [],
+  "Tacit Knowledge ↔ AI Creativity Limits": [
+    "Undocumented human intuition blocks:"
+  ],
+  "Undocumented human intuition blocks:": [
+    "Deep AI generalization",
+    "True disruptive transfer learning"
+  ],
+  "Deep AI generalization": [],
+  "True disruptive transfer learning": [],
+  "RL Disruption ↔ Enterprise AI Constraints": [
+    "Disruption emerges only where:"
+  ],
+  "Disruption emerges only where:": [
+    "Utility functions are mathematically stable",
+    "Reward landscapes are well defined"
+  ],
+  "Utility functions are mathematically stable": [],
+  "Reward landscapes are well defined": []
+};
+
+
+
+  const NOTES_PANEL_WIDTH = 300;
+  const HEADER_HEIGHT = 88;
+  const GITHUB_ISSUE_URL = "https://github.com/AI-Discussion-Club/Discussion-1/issues/new";
+
+  const rootTheme = {
+    fillPrimary: "#f59e0b",
+    fillSecondary: "#fcd34d",
+    stroke: "#fcd34d",
+    link: "rgba(251,191,36,0.55)"
+  };
+
+  const branchPalette = [
+    { fillPrimary: "#0ea5e9", fillSecondary: "#38bdf8", stroke: "#7dd3fc", link: "rgba(56,189,248,0.7)" },
+    { fillPrimary: "#10b981", fillSecondary: "#34d399", stroke: "#6ee7b7", link: "rgba(45,212,191,0.65)" },
+    { fillPrimary: "#a855f7", fillSecondary: "#c084fc", stroke: "#d8b4fe", link: "rgba(192,132,252,0.7)" },
+    { fillPrimary: "#f97316", fillSecondary: "#fb923c", stroke: "#fdba74", link: "rgba(249,115,22,0.65)" },
+    { fillPrimary: "#f43f5e", fillSecondary: "#fb7185", stroke: "#fda4af", link: "rgba(244,63,94,0.65)" }
+  ];
+  const defaultBranchTheme = { fillPrimary: "#14b8a6", fillSecondary: "#2dd4bf", stroke: "#5eead4", link: "rgba(45,212,191,0.7)" };
+  let branchPaletteIndex = 0;
+  const branchThemeCache = new Map();
+
+  function resetBranchPalette() {
+    branchPaletteIndex = 0;
+    branchThemeCache.clear();
+  }
+
+  function themeForBranch(name) {
+    if (!branchThemeCache.has(name)) {
+      const theme = branchPalette[branchPaletteIndex % branchPalette.length] || defaultBranchTheme;
+      branchThemeCache.set(name, theme);
+      branchPaletteIndex += 1;
+    }
+    return branchThemeCache.get(name);
+  }
+
+  function assignThemes(node, paletteIndex = 0, inheritedTheme = rootTheme) {
+    let currentTheme = inheritedTheme;
+    if (node.depth === 0) {
+      currentTheme = rootTheme;
+    } else if (node.depth === 1) {
+      currentTheme = themeForBranch(node.data.name);
+    }
+    node.theme = currentTheme;
+
+    const allChildren = [
+      ...(node.children || []),
+      ...(node._children || [])
+    ];
+    allChildren.forEach((child) => {
+      assignThemes(child, paletteIndex, currentTheme);
+    });
+  }
+
+  function getTheme(node) {
+    return node.theme || rootTheme;
+  }
+
+  function getFillColor(node) {
+    const theme = getTheme(node);
+    if (node.depth === 0) return theme.fillPrimary;
+    if (node.depth === 1) return theme.fillPrimary;
+    return theme.fillSecondary;
+  }
+
+  function getStrokeColor(node) {
+    const theme = getTheme(node);
+    return node.depth <= 1 ? theme.stroke : theme.fillSecondary;
+  }
+
+  function getLinkColor(node) {
+    const theme = getTheme(node);
+    return theme.link;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 2. Convert adjacency list -> nodes & links
+  // ---------------------------------------------------------------------------
+
+  const rootId = "AI Hype, Productivity & Enterprise Adoption";
+
+  function buildTree(nodeId, adjacencyMap, visited = new Set()) {
+    const entry = { name: nodeId, children: [] };
+    if (visited.has(nodeId)) {
+      return entry;
+    }
+    visited.add(nodeId);
+    const childIds = adjacencyMap[nodeId] || [];
+    entry.children = childIds.map(child => buildTree(child, adjacencyMap, visited));
+    return entry;
+  }
+
+  const root = d3.hierarchy(buildTree(rootId, adjacency));
+  root.x0 = 0;
+  root.y0 = 0;
+  resetBranchPalette();
+  assignThemes(root);
+
+  resetBranchPalette();
+  assignThemes(root);
+
+  const nodeBox = { width: 220, minHeight: 44 };
+  const radialStep = 180;
+  let nodeIndex = 0;
+
+  let width = window.innerWidth - NOTES_PANEL_WIDTH;
+  let height = window.innerHeight - HEADER_HEIGHT;
+  let centerX = width / 2;
+  let centerY = height / 2;
+
+  const svg = d3.select("#graph")
+    .attr("width", width)
+    .attr("height", height);
+
+  const scene = svg.append("g");
+  const content = scene.append("g");
+  const linkLayer = content.append("g").attr("class", "links");
+  const nodeLayer = content.append("g").attr("class", "nodes");
+
+  const radialLink = d3.linkRadial()
+    .angle(d => d.angle)
+    .radius(d => d.radius);
+
+  const zoom = d3.zoom()
+    .scaleExtent([0.4, 2.4])
+    .on("zoom", event => scene.attr("transform", event.transform));
+
+  svg.call(zoom);
+
+  function positionContent() {
+    content.attr("transform", `translate(${centerX},${centerY})`);
+  }
+  positionContent();
+
+  const tooltip = document.getElementById("tooltip");
+  const graphToggleBtn = document.getElementById("graphToggle");
+  const commitNotesBtn = document.getElementById("commitNotesBtn");
+  const noteTitleEl = document.getElementById("noteTitle");
+  const noteInputEl = document.getElementById("noteInput");
+  const graphTitle = document.title || "Knowledge Graph";
+  const nodeNotes = new Map();
+  let selectedNodeName = null;
+  let graphFullyExpanded = false;
+  commitNotesBtn.disabled = true;
+
+  collapse(root);
+  update(root);
+
+  function collapse(node) {
+    if (node.children) {
+      node._children = node.children;
+      node._children.forEach(collapse);
+      node.children = null;
+    }
+  }
+
+  function expand(node) {
+    if (node._children) {
+      node.children = node._children;
+      node._children = null;
+    }
+  }
+
+  function expandAll(node) {
+    if (node._children) {
+      node.children = node._children;
+      node._children = null;
+    }
+    (node.children || []).forEach(expandAll);
+  }
+
+  graphToggleBtn.addEventListener("click", () => {
+    if (graphFullyExpanded) {
+      collapse(root);
+      graphFullyExpanded = false;
+      graphToggleBtn.textContent = "<>";
+    } else {
+      expandAll(root);
+      graphFullyExpanded = true;
+      graphToggleBtn.textContent = "><";
+    }
+    update(root);
+  });
+
+  function refreshSelectionHighlight() {
+    nodeLayer.selectAll("g.node-group")
+      .classed("node-selected", d => selectedNodeName && d.data.name === selectedNodeName);
+    commitNotesBtn.disabled = !selectedNodeName;
+    commitNotesBtn.title = selectedNodeName ? `Commit notes for "${selectedNodeName}"` : "Select a node to commit notes";
+  }
+
+  function clearSelectedNode() {
+    selectedNodeName = null;
+    noteTitleEl.textContent = "Select a node to add notes.";
+    noteInputEl.value = "";
+    noteInputEl.disabled = true;
+    refreshSelectionHighlight();
+  }
+
+  function selectNode(node) {
+    selectedNodeName = node.data.name;
+    noteTitleEl.textContent = node.data.name;
+    noteInputEl.disabled = false;
+    noteInputEl.value = nodeNotes.get(selectedNodeName) || "";
+    noteInputEl.focus();
+    refreshSelectionHighlight();
+  }
+
+  noteInputEl.addEventListener("input", () => {
+    if (!selectedNodeName) return;
+    nodeNotes.set(selectedNodeName, noteInputEl.value);
+  });
+
+  function buildIssueUrl(nodeName, noteText) {
+    const bodyLines = [
+      `## Graph Title`,
+      graphTitle,
+      "",
+      `## Node`,
+      nodeName,
+      "",
+      `## Notes`,
+      noteText || "_No note provided_",
+      "",
+      `---`,
+      `Generated: ${new Date().toISOString()}`
+    ];
+    const issueTitle = encodeURIComponent(`[Graph Note] ${nodeName}`);
+    const issueBody = encodeURIComponent(bodyLines.join("\n"));
+    return `${GITHUB_ISSUE_URL}?title=${issueTitle}&body=${issueBody}`;
+  }
+
+  commitNotesBtn.addEventListener("click", () => {
+    if (!selectedNodeName) {
+      alert("Select a node and add notes before committing.");
+      return;
+    }
+    if (!GITHUB_ISSUE_URL || GITHUB_ISSUE_URL.includes("YOUR-ORG")) {
+      alert("Update GITHUB_ISSUE_URL with your repository issue URL before committing notes.");
+      return;
+    }
+    const noteText = (noteInputEl.value || nodeNotes.get(selectedNodeName) || "").trim();
+    const issueUrl = buildIssueUrl(selectedNodeName, noteText);
+    window.open(issueUrl, "_blank", "noopener");
+  });
+
+  function toggle(node) {
+    if (node.children) {
+      node.children.forEach(collapse);
+      collapse(node);
+    } else {
+      expand(node);
+    }
+    update(node);
+  }
+
+  svg.on("click.noteClear", () => {
+    clearSelectedNode();
+  });
+
+  function project(angle, radius) {
+    const adjusted = angle - Math.PI / 2;
+    return [
+      radius * Math.cos(adjusted),
+      radius * Math.sin(adjusted)
+    ];
+  }
+
+  function hasVisibleChildren(node) {
+    return node.children && node.children.length;
+  }
+
+  function hasAnyChildren(node) {
+    return hasVisibleChildren(node) || (node._children && node._children.length);
+  }
+
+  function computeWeights(node) {
+    const children = node.children || [];
+    if (!children.length) {
+      node.weight = 1;
+      return node.weight;
+    }
+    node.weight = children.reduce((sum, child) => sum + computeWeights(child), 0);
+    return node.weight;
+  }
+
+  function assignAngles(node, startAngle, endAngle, depth) {
+    const span = endAngle - startAngle;
+    node.minAngle = startAngle;
+    node.maxAngle = endAngle;
+    node.angle = startAngle + span / 2;
+    const isTerminal = !hasAnyChildren(node);
+    node.radius = depth * radialStep + (isTerminal ? radialStep * 2 : 0);
+    const [x, y] = project(node.angle, node.radius);
+    node.xPos = x;
+    node.yPos = y;
+
+    const children = hasVisibleChildren(node) ? node.children : [];
+    if (!children.length) return;
+
+    const usableSpan = span * 0.92;
+    let current = startAngle + (span - usableSpan) / 2;
+    const totalWeight = children.reduce((sum, child) => sum + (child.weight || 1), 0);
+    children.forEach(child => {
+      const fraction = (child.weight || 1) / totalWeight;
+      const childSpan = usableSpan * fraction;
+      assignAngles(child, current, current + childSpan, depth + 1);
+      current += childSpan;
+    });
+  }
+
+  function sizeNodes(selection) {
+    selection.each(function(d) {
+      const group = d3.select(this);
+      const rect = group.select("rect");
+      const fo = group.select("foreignObject");
+      const div = fo.select(".node-label").node();
+      if (!div) return;
+
+      div.style.height = "auto";
+      const measured = div.scrollHeight;
+      const boxHeight = Math.max(nodeBox.minHeight, measured + 14);
+      d.boxHeight = boxHeight;
+
+      rect
+        .attr("height", boxHeight)
+        .attr("y", -boxHeight / 2);
+
+      const innerHeight = Math.max(1, boxHeight - 12);
+      fo
+        .attr("height", innerHeight)
+        .attr("y", -innerHeight / 2);
+    });
+  }
+
+  function update(source) {
+    resetBranchPalette();
+    assignThemes(root);
+    computeWeights(root);
+    assignAngles(root, 0, Math.PI * 2, 0);
+
+    const nodes = root.descendants();
+    const links = root.links();
+
+    const sourceAngle = source.x0 !== undefined ? source.x0 : (source.angle || 0);
+    const sourceRadius = source.y0 !== undefined ? source.y0 : (source.radius || 0);
+    const [sx, sy] = project(sourceAngle, sourceRadius);
+
+    const transition = svg.transition().duration(500);
+
+    const nodeSelection = nodeLayer.selectAll("g.node-group")
+      .data(nodes, d => d.id || (d.id = ++nodeIndex));
+
+    const nodeEnter = nodeSelection.enter()
+      .append("g")
+      .attr("class", d => `node-group depth-${d.depth}`)
+      .attr("transform", `translate(${sx},${sy})`)
+      .attr("opacity", 0)
+      .on("click", (event, d) => {
+        event.stopPropagation();
+        selectNode(d);
+      })
+      .on("mouseover", (event, d) => {
+        d3.select(event.currentTarget).raise();
+        tooltip.style.display = "block";
+        tooltip.textContent = d.data.name;
+      })
+      .on("mousemove", event => {
+        tooltip.style.left = (event.pageX + 12) + "px";
+        tooltip.style.top = (event.pageY + 12) + "px";
+      })
+      .on("mouseout", () => {
+        tooltip.style.display = "none";
+      });
+
+    nodeEnter.append("rect")
+      .attr("class", "node-rect")
+      .attr("width", nodeBox.width)
+      .attr("height", nodeBox.minHeight)
+      .attr("x", -nodeBox.width / 2)
+      .attr("y", -nodeBox.minHeight / 2)
+      .attr("rx", 10)
+      .attr("ry", 10)
+      .attr("fill", d => getFillColor(d))
+      .attr("stroke", d => getStrokeColor(d));
+
+    const labelContainer = nodeEnter.append("foreignObject")
+      .attr("class", "node-fo")
+      .attr("x", -(nodeBox.width / 2) + 10)
+      .attr("y", -(nodeBox.minHeight - 12) / 2)
+      .attr("width", nodeBox.width - 20)
+      .attr("height", nodeBox.minHeight - 12);
+
+    labelContainer.append("xhtml:div")
+      .attr("class", "node-label")
+      .text(d => d.data.name);
+
+    const toggleButton = nodeEnter.append("g")
+      .attr("class", "node-toggle")
+      .on("click", (event, d) => {
+        event.stopPropagation();
+        toggle(d);
+      });
+
+    toggleButton.append("circle")
+      .attr("r", 9)
+      .attr("fill", d => getFillColor(d))
+      .attr("stroke", d => getStrokeColor(d));
+
+    toggleButton.append("text")
+      .attr("dy", "0.32em");
+
+    sizeNodes(nodeEnter);
+
+    const nodeUpdate = nodeEnter.merge(nodeSelection);
+
+    nodeUpdate.transition(transition)
+      .attr("transform", d => `translate(${d.xPos},${d.yPos})`)
+      .attr("opacity", 1);
+
+    nodeUpdate.select("rect")
+      .attr("width", nodeBox.width)
+      .attr("x", -nodeBox.width / 2)
+      .attr("height", d => d.boxHeight || nodeBox.minHeight)
+      .attr("y", d => -(d.boxHeight || nodeBox.minHeight) / 2)
+      .attr("fill", d => getFillColor(d))
+      .attr("stroke", d => getStrokeColor(d));
+
+    nodeUpdate.select("foreignObject")
+      .attr("x", -(nodeBox.width / 2) + 10)
+      .attr("width", nodeBox.width - 20)
+      .attr("height", d => Math.max(1, (d.boxHeight || nodeBox.minHeight) - 12))
+      .attr("y", d => -(Math.max(1, (d.boxHeight || nodeBox.minHeight) - 12)) / 2);
+
+    nodeUpdate.select(".node-toggle")
+      .style("display", d => (d.children || d._children) ? "block" : "none")
+      .attr("transform", d => {
+        const direction = Math.cos(d.angle - Math.PI / 2) >= 0 ? 1 : -1;
+        return `translate(${direction * (nodeBox.width / 2 + 14)},0)`;
+      });
+
+    nodeUpdate.select(".node-toggle circle")
+      .attr("fill", d => getFillColor(d))
+      .attr("stroke", d => getStrokeColor(d));
+
+    nodeUpdate.select(".node-toggle text")
+      .text(d => d.children ? "-" : "+");
+
+    nodeSelection.exit().transition(transition)
+      .attr("transform", `translate(${sx},${sy})`)
+      .attr("opacity", 0)
+      .remove();
+
+    const linkSelection = linkLayer.selectAll("path")
+      .data(links, d => d.target.id);
+
+    const linkEnter = linkSelection.enter()
+      .append("path")
+      .attr("class", "link")
+      .attr("stroke", d => getLinkColor(d.target))
+      .attr("d", radialLink({
+        source: { angle: sourceAngle, radius: sourceRadius },
+        target: { angle: sourceAngle, radius: sourceRadius }
+      }));
+
+    linkSelection.merge(linkEnter).transition(transition)
+      .attr("stroke", d => getLinkColor(d.target))
+      .attr("d", d => radialLink({
+        source: { angle: d.source.angle, radius: d.source.radius },
+        target: { angle: d.target.angle, radius: d.target.radius }
+      }));
+
+    linkSelection.exit().transition(transition)
+      .attr("d", radialLink({
+        source: { angle: sourceAngle, radius: sourceRadius },
+        target: { angle: sourceAngle, radius: sourceRadius }
+      }))
+      .remove();
+
+    nodes.forEach(d => {
+      d.x0 = d.angle;
+      d.y0 = d.radius;
+    });
+
+    refreshSelectionHighlight();
+  }
+
+  window.addEventListener("resize", () => {
+    width = window.innerWidth - NOTES_PANEL_WIDTH;
+    height = window.innerHeight - HEADER_HEIGHT;
+    centerX = width / 2;
+    centerY = height / 2;
+    svg.attr("width", width).attr("height", height);
+    positionContent();
+    update(root);
+  });
+
+</script>
+</body>
+</html>
+simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // Resize handling (optional, keeps layout centered on resize)
+  window.addEventListener("resize", () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    svg.attr("width", w).attr("height", h);
+    simulation.force("center", d3.forceCenter(w / 2, h / 2));
+    simulation.alpha(0.5).restart();
+  });
+</script>
+</body>
+</html>phaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // Resize handling (optional, keeps layout centered on resize)
+  window.addEventListener("resize", () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    svg.attr("width", w).attr("height", h);
+    simulation.force("center", d3.forceCenter(w / 2, h / 2));
+    simulation.alpha(0.5).restart();
+  });
+</script>
+</body>
+</html>haTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  // Resize handling (optional, keeps layout centered on resize)
+  window.addEventListener("resize", () => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    svg.attr("width", w).attr("height", h);
+    simulation.force("center", d3.forceCenter(w / 2, h / 2));
+    simulation.alpha(0.5).restart();
+  });
+</script>
+</body>
+</html>
