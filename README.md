@@ -3,7 +3,7 @@
 Conversation starter for our knowledge-graph session based on Sir Tim Berners-Lee's conversation with Krishnan Guru-Murthy. We will use the graph to map ideas, tensions, and actions as we talk.
 
 ## 🎯 Quick prep
-- 🎥 Watch/listen: 40-min podcast video (YouTube link) before the event.
+- 🎥 Watch/listen: 40-min podcast video (YouTube link) before the event - [Youtube Link](https://www.youtube.com/watch?si=8a32UQZ-Jwq49nu3&v=mV2mGdrEP3I&feature=youtu.be)
 - 💡 Bring one insight and one worry you want to map in the graph.
 - 🤝 Expect small-group breakouts (up to 8 people per group).
 
